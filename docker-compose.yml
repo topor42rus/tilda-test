@@ -1,0 +1,39 @@
+version: '3'
+
+services:
+  apache:
+    image: httpd:2.4
+    volumes:
+      - ./src:/var/www/
+      - ./httpd/httpd.conf:/usr/local/apache2/conf/httpd.conf
+    networks:
+      tilda-test:
+        aliases:
+         - orig1.tilda.test
+         - orig2.tilda.test
+      
+
+  nginx:
+    image: nginx:1.13
+    ports:
+      - 80:80
+    volumes:
+      - ./src:/var/www/
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - tilda-test
+    depends_on:
+      - apache
+      - php
+
+  php:
+    image: php:7.2-fpm
+    volumes:
+      - ./src:/var/www/
+    networks:
+      - tilda-test
+
+networks:
+  tilda-test:
+    driver: bridge
+

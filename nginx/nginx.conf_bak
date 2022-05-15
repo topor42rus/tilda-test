@@ -1,0 +1,49 @@
+worker_processes  1;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+    sendfile        on;
+    keepalive_timeout  65;
+
+    upstream backend {
+      server orig1.tilda.test max_fails=1 fail_timeout=1s;
+      server orig2.tilda.test max_fails=1 fail_timeout=1s;
+    }
+
+    server {
+        listen       80;
+        server_name  res.tilda.test;
+	index	     index.php;
+        root         /var/www;
+
+	location / {
+	    include fastcgi_params;
+	   
+            fastcgi_pass php:9000;
+	    fastcgi_index index.php;
+            fastcgi_param   SCRIPT_FILENAME  $document_root/index.php;
+	}
+
+    }
+
+    server {
+        listen       80;
+        server_name  orig.tilda.test;
+
+        location / {    
+            proxy_next_upstream http_404;
+            proxy_pass http://backend;
+	    proxy_set_header Host $upstream_http_server;
+	    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+	    proxy_set_header X-Real-IP $remote_addr;
+        }
+
+    }
+
+}
+
